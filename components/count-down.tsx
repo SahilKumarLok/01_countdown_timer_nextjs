@@ -1,158 +1,128 @@
-"use client"; // Enables client-side rendering for this component
+"use client";
 
-import { useState, useRef, useEffect, ChangeEvent } from "react"; // Import React hooks and types
-import { Input } from "@/components/ui/input"; // Import custom Input component
-import { Button } from "@/components/ui/button"; // Import custom Button component
+import { useState, useRef, useEffect, ChangeEvent } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function Countdown() {
-  // State to manage the duration input
-  const [duration, setDuration] = useState<number | string>("");
-  // State to manage the countdown timer value
-  const [timeLeft, setTimeLeft] = useState<number>(0);
-  // State to track if the timer is active
-  const [isActive, setIsActive] = useState<boolean>(false);
-  // State to track if the timer is paused
-  const [isPaused, setIsPaused] = useState<boolean>(false);
-  // Reference to store the timer ID
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [duration, setDuration] = useState<number | string>(""); // Duration input
+  const [timeLeft, setTimeLeft] = useState<number>(0); // Time left for countdown
+  const [isRunning, setIsRunning] = useState<boolean>(false); // Tracks timer state (running/paused)
+  const timerRef = useRef<NodeJS.Timeout | null>(null); // Timer reference
+  const [promptVisible, setPromptVisible] = useState<boolean>(true); // State to manage prompt visibility
 
-  // Function to handle setting the duration of the countdown
+  // Set the countdown duration and reset the timer
   const handleSetDuration = (): void => {
-    if (typeof duration === "number" && duration > 0) {
-      setTimeLeft(duration); // Set the countdown timer
-      setIsActive(false); // Reset active state
-      setIsPaused(false); // Reset paused state
-      // Clear any existing timer
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+    const validDuration = typeof duration === "number" && duration > 0;
+    if (validDuration) {
+      setTimeLeft(duration);
+      setIsRunning(false); // Reset state when duration is set
+      clearTimer();
+      setPromptVisible(false); // Hide prompt once the duration is set
     }
   };
 
-  // Function to start the countdown timer
+  // Start or resume the countdown
   const handleStart = (): void => {
-    if (timeLeft > 0) {
-      setIsActive(true); // Set the timer as active
-      setIsPaused(false); // Unpause the timer if it was paused
-    }
+    if (timeLeft > 0 && !isRunning) setIsRunning(true);
   };
 
-  // Function to pause the countdown timer
+  // Pause the countdown
   const handlePause = (): void => {
-    if (isActive) {
-      setIsPaused(true); // Set the timer as paused
-      setIsActive(false); // Set the timer as inactive
-      // Clear any existing timer
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    }
+    if (isRunning) setIsRunning(false);
   };
 
-  // Function to reset the countdown timer
+  // Reset the countdown timer
   const handleReset = (): void => {
-    setIsActive(false); // Set the timer as inactive
-    setIsPaused(false); // Set the timer as not paused
-    setTimeLeft(typeof duration === "number" ? duration : 0); // Reset the timer to the original duration
-    // Clear any existing timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
+    setIsRunning(false);
+    setTimeLeft(typeof duration === "number" ? duration : 0);
+    clearTimer();
+    setPromptVisible(true); // Show prompt again after reset
   };
 
-  // useEffect hook to manage the countdown interval
+  // Clear the timer
+  const clearTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  // Update the countdown timer each second
   useEffect(() => {
-    // If the timer is active and not paused
-    if (isActive && !isPaused) {
-      // Set an interval to decrease the time left
+    if (isRunning) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prevTime) => {
-          // If time is up, clear the interval
           if (prevTime <= 1) {
-            clearInterval(timerRef.current!);
+            clearTimer();
+            setIsRunning(false);
             return 0;
           }
-          // Decrease the time left by one second
           return prevTime - 1;
         });
-      }, 1000); // Interval of 1 second
+      }, 1000);
     }
-    // Cleanup function to clear the interval
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [isActive, isPaused]); // Dependencies array to rerun the effect
+    return clearTimer; // Cleanup on unmount or state change
+  }, [isRunning]);
 
-  // Function to format the time left into mm:ss format
+  // Format the time into mm:ss
   const formatTime = (time: number): string => {
-    const minutes = Math.floor(time / 60); // Calculate minutes
-    const seconds = time % 60; // Calculate seconds
-    // Return the formatted string
-    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
-      2,
-      "0"
-    )}`;
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   };
 
-  // Function to handle changes in the duration input field
+  // Handle duration input changes
   const handleDurationChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    setDuration(Number(e.target.value) || ""); // Update the duration state
+    setDuration(Number(e.target.value) || ""); // Ensure valid numeric input
   };
 
-  // JSX return statement rendering the Countdown UI
+  // JSX rendering
   return (
-    // Container div for centering the content
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Timer box container */}
-      <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-8 w-full max-w-md">
-        {/* Title of the countdown timer */}
-        <h1 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200 text-center">
+    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-black">
+      <div className="bg-white dark:bg-gray-800 shadow-2xl rounded-xl p-8 w-full max-w-md transition-transform transform hover:scale-105">
+        <h1 className="text-3xl font-extrabold mb-6 text-gray-800 dark:text-white text-center tracking-widest">
           Countdown Timer
         </h1>
-        {/* Input and set button container */}
-        <div className="flex items-center mb-6">
+        
+        {/* Prompt to guide the user */}
+        {promptVisible && (
+          <div className="text-center text-gray-700 dark:text-gray-300 mb-4">
+            Please set a duration to start the countdown.
+          </div>
+        )}
+        
+        <div className="flex items-center mb-8">
           <Input
             type="number"
-            id="duration"
             placeholder="Enter duration in seconds"
             value={duration}
             onChange={handleDurationChange}
-            className="flex-1 mr-4 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+            className="flex-1 p-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 transition-all"
           />
           <Button
             onClick={handleSetDuration}
-            variant="outline"
-            className="text-gray-800 dark:text-gray-200"
+            className="ml-4 bg-gradient-to-r from-teal-400 to-blue-500 text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg hover:bg-gradient-to-r hover:from-blue-500 hover:to-teal-400 transition-all"
           >
             Set
           </Button>
         </div>
-        {/* Display the formatted time left */}
-        <div className="text-6xl font-bold text-gray-800 dark:text-gray-200 mb-8 text-center">
+        <div className="text-6xl font-extrabold text-gray-800 dark:text-white mb-8 text-center bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 text-transparent bg-clip-text">
           {formatTime(timeLeft)}
         </div>
-        {/* Buttons to start, pause, and reset the timer */}
         <div className="flex justify-center gap-4">
           <Button
             onClick={handleStart}
-            variant="outline"
-            className="text-gray-800 dark:text-gray-200"
+            className="bg-gradient-to-r from-green-400 to-lime-500 text-white px-8 py-3 rounded-lg shadow-lg hover:shadow-xl hover:bg-gradient-to-r hover:from-lime-500 hover:to-green-400 transition-all"
           >
-            {isPaused ? "Resume" : "Start"}
+            {isRunning ? "Running" : "Start"}
           </Button>
           <Button
             onClick={handlePause}
-            variant="outline"
-            className="text-gray-800 dark:text-gray-200"
+            className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-3 rounded-lg shadow-lg hover:shadow-xl hover:bg-gradient-to-r hover:from-orange-500 hover:to-yellow-400 transition-all"
           >
             Pause
           </Button>
           <Button
             onClick={handleReset}
-            variant="outline"
-            className="text-gray-800 dark:text-gray-200"
+            className="bg-gradient-to-r from-red-400 to-pink-500 text-white px-8 py-3 rounded-lg shadow-lg hover:shadow-xl hover:bg-gradient-to-r hover:from-pink-500 hover:to-red-400 transition-all"
           >
             Reset
           </Button>
